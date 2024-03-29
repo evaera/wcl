@@ -1,73 +1,33 @@
-use anyhow::Context;
-use graphql_client::GraphQLQuery;
-use reqwest::header;
-use serde::Deserialize;
-use std::env;
+use clap::{Parser, Subcommand};
 
 pub mod combat_log;
+pub mod warcraft_logs;
 
-#[allow(clippy::upper_case_acronyms)]
-type JSON = serde_json::Value;
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
 
-const WCL_URL: &str = "https://www.warcraftlogs.com/api/v2/client";
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "generated/schema.json",
-    query_path = "src/queries/CombatLogQuery.graphql",
-    response_derives = "Debug"
-)]
-pub struct CombatLogQuery;
+#[derive(Subcommand)]
+enum Commands {
+    Download { report_id: String, fight_id: u32 },
+}
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    dotenvy::dotenv().expect(".env file not found");
+async fn main() {
+    dotenvy::dotenv().ok();
 
-    let mut headers = header::HeaderMap::new();
-    let mut auth_value =
-        header::HeaderValue::from_str(&format!("Bearer {}", &env::var("WCL_SECRET")?))?;
-    auth_value.set_sensitive(true);
-    headers.insert(header::AUTHORIZATION, auth_value);
+    let cli = Cli::parse();
 
-    let client = reqwest::Client::builder()
-        .default_headers(headers)
-        .build()
-        .unwrap();
-
-    let mut start_time = 0.0;
-
-    loop {
-        println!("Start time: {start_time}");
-
-        let variables = combat_log_query::Variables {
-            report_id: "BTGmLz3pPbn4xhcJ".to_owned(),
-            fight_id: 3,
-            start_time: Some(start_time),
-        };
-        let body = <CombatLogQuery>::build_query(variables);
-        let response = client.post(WCL_URL).json(&body).send().await?;
-
-        let response: serde_json::Value = response.json().await?;
-
-        let data = combat_log::ReportEventPaginator::deserialize(
-            response
-                .get("data")
-                .and_then(|v| v.get("reportData"))
-                .and_then(|v| v.get("report"))
-                .and_then(|v| v.get("events"))
-                .context("Unknown response format")?,
-        )?;
-
-        if let Some(next_timestamp) = data.next_page_timestamp {
-            if next_timestamp <= start_time {
-                break;
-            }
-
-            start_time = next_timestamp;
-        } else {
-            break;
+    match cli.command {
+        Commands::Download {
+            report_id,
+            fight_id,
+        } => {
+            let wcl = warcraft_logs::WarcraftLogs::new();
+            dbg!(wcl.get_report(&report_id, fight_id).await.unwrap());
         }
     }
-
-    Ok(())
 }

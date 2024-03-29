@@ -1,6 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct CombatLog {
+    pub report_id: String,
+    pub fight_id: i64,
+    pub events: Vec<CombatLogEvent>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ReportEventPaginator {
     pub data: Vec<CombatLogEvent>,
