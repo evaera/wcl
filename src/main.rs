@@ -34,7 +34,7 @@ async fn main() -> anyhow::Result<()> {
         .build()
         .unwrap();
 
-    let mut start_time = 364224.0;
+    let mut start_time = 0.0;
 
     loop {
         println!("Start time: {start_time}");
