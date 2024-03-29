@@ -1,0 +1,10 @@
+query CombatLogQuery($reportId: String!, $fightId: Int!, $startTime: Float = 0.0) {
+	reportData {
+		report(code: $reportId) {
+			events(fightIDs: [$fightId], startTime: $startTime, endTime: 9999999999) {
+				data
+				nextPageTimestamp
+			}
+		}
+	}
+}
