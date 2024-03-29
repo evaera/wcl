@@ -18,6 +18,7 @@ enum Commands {
 #[tokio::main]
 async fn main() {
     dotenvy::dotenv().ok();
+    env_logger::init();
 
     let cli = Cli::parse();
 

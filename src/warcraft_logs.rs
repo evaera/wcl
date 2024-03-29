@@ -20,31 +20,27 @@ const WCL_URL: &str = "https://www.warcraftlogs.com/api/v2/client";
 )]
 pub struct CombatLogQuery;
 
-pub struct WarcraftLogs {}
+pub struct WarcraftLogs {
+    access_token: String,
+}
 
+#[allow(clippy::new_without_default)]
 impl WarcraftLogs {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            access_token: env::var("WCL_SECRET").unwrap(),
+        }
     }
 
     pub async fn get_report(&self, report_id: &str, fight_id: u32) -> anyhow::Result<CombatLog> {
-        let mut headers = header::HeaderMap::new();
-        let mut auth_value =
-            header::HeaderValue::from_str(&format!("Bearer {}", &env::var("WCL_SECRET")?))?;
-        auth_value.set_sensitive(true);
-        headers.insert(header::AUTHORIZATION, auth_value);
-
-        let client = reqwest::Client::builder()
-            .default_headers(headers)
-            .build()
-            .unwrap();
+        let client = reqwest::Client::new();
 
         let mut start_time = 0.0;
 
         let mut events = Vec::new();
 
         loop {
-            println!("Start time: {start_time}");
+            log::debug!("Downloading combat data starting from time: {start_time}");
 
             let variables = combat_log_query::Variables {
                 report_id: report_id.to_owned(),
@@ -52,7 +48,12 @@ impl WarcraftLogs {
                 start_time: Some(start_time),
             };
             let body = <CombatLogQuery>::build_query(variables);
-            let response = client.post(WCL_URL).json(&body).send().await?;
+            let response = client
+                .post(WCL_URL)
+                .bearer_auth(self.access_token.clone())
+                .json(&body)
+                .send()
+                .await?;
 
             let response: serde_json::Value = response.json().await?;
 
@@ -64,6 +65,8 @@ impl WarcraftLogs {
                     .and_then(|v| v.get("events"))
                     .context("Unknown response format")?,
             )?;
+
+            log::debug!("Received {} events", paginator.data.len());
 
             events.append(&mut paginator.data);
 
