@@ -10,8 +10,7 @@ use std::time::Duration;
 
 use serde::de::{self, MapAccess, Visitor};
 
-use crate::combat_log::{self, CombatLog};
-
+use super::combat_log::CombatLog;
 use super::ApiContext;
 
 pub struct Report {
@@ -57,7 +56,7 @@ impl Report {
 pub struct Fight {
     pub data: FightData,
     pub report_id: String,
-    pub(super) api_context: Arc<ApiContext>,
+    api_context: Arc<ApiContext>,
     report_start_time: f64,
     pub friendly_players: Vec<Actor>,
     pub enemy_players: Vec<Actor>,

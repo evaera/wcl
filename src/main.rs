@@ -1,7 +1,6 @@
 use chrono::Offset;
 use clap::{Parser, Subcommand};
 
-pub mod combat_log;
 pub mod warcraft_logs;
 
 #[derive(Parser)]

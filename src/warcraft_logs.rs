@@ -3,8 +3,9 @@ use graphql_client::{GraphQLQuery, QueryBody};
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 
-use crate::combat_log::{self, CombatLog};
+use self::combat_log::CombatLog;
 
+pub mod combat_log;
 pub mod report;
 
 #[allow(clippy::upper_case_acronyms)]
