@@ -1,6 +1,8 @@
 use anyhow::{bail, Context};
 use graphql_client::{GraphQLQuery, QueryBody};
 use serde::{Deserialize, Deserializer, Serialize};
+use serde_repr::Deserialize_repr;
+use serde_repr::Serialize_repr;
 use serde_with::serde_as;
 use std::env;
 use std::fmt;
@@ -35,6 +37,17 @@ impl Report {
                 enemy_players.push(data.master_data.actors[*idx as usize].clone())
             }
 
+            let difficulty = if let Some(difficulty_id) = fight.difficulty {
+                data.zone
+                    .difficulties
+                    .iter()
+                    .find(|d| d.id == difficulty_id)
+                    .map(|d| d.name.clone())
+                    .unwrap_or("Unknown".to_owned())
+            } else {
+                "Unknown".to_owned()
+            };
+
             fights.push(Fight {
                 api_context: api_context.clone(),
                 data: fight,
@@ -43,6 +56,7 @@ impl Report {
                 friendly_players,
                 enemy_players,
                 actors: data.master_data.actors.clone(),
+                difficulty,
             });
         }
 
@@ -62,6 +76,7 @@ pub struct Fight {
     pub friendly_players: Vec<Actor>,
     pub enemy_players: Vec<Actor>,
     actors: Vec<Actor>,
+    pub difficulty: String,
 }
 
 impl Fight {
@@ -114,6 +129,20 @@ pub struct Guild {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct Zone {
+    pub id: u64,
+    pub difficulties: Vec<Difficulty>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Difficulty {
+    id: i64,
+    name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: u64,
     pub name: String,
@@ -148,6 +177,7 @@ pub struct ReportData {
     pub start_time: f64,
     pub guild: Option<Guild>,
     pub owner: User,
+    pub zone: Zone,
 
     #[serde(deserialize_with = "string_or_struct::<Region, _>")]
     pub region: String,
@@ -208,6 +238,76 @@ pub enum PlayerClass {
     Druid,
     DemonHunter,
     Evoker,
+}
+
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq, Eq)]
+#[repr(i64)]
+pub enum WowDifficulty {
+    PartyNormal = 1,
+    PartyHeroic = 2,
+    Raid10Normal = 3,
+    Raid25Normal = 4,
+    Raid10Heroic = 5,
+    Raid25Heroic = 6,
+    RaidLegacyLookingForRaid = 7,
+    MythicKeystone = 8,
+    Raid40 = 9,
+
+    ScenarioHeroic = 11,
+    ScenarioNormal = 12,
+
+    RaidNormal = 14,
+    RaidHeroic = 15,
+    RaidMythic = 16,
+    RaidLookingForRaid = 17,
+
+    EventRaid = 18,
+    EventParty = 19,
+    EventScenario = 20,
+
+    PartyMythic = 23,
+    PartyTimeWalking = 24,
+    ScenarioWorldPvp = 25,
+
+    ScenarioPvEvP = 29,
+    ScenarioEvent = 30,
+    ScenarioWorldPvp2 = 32,
+    RaidTimeWalking = 33,
+    Pvp = 34,
+
+    ScenarioNormal2 = 38,
+    ScenarioHeroic2 = 39,
+    ScenarioMythic = 40,
+
+    ScenarioPvp = 45,
+
+    WarfrontNormal = 147,
+
+    Raid20 = 148,
+
+    WarfrontHeroic = 149,
+    PartyNormal2 = 150,
+    RaidLookingForRaidTimeWalking = 151,
+
+    ScenarioVisionsOfNzoth = 152,
+    ScenarioTeemingIsland = 153,
+    ScenarioTorghast = 167,
+    ScenarioPathOfAscensionCourage = 168,
+    ScenarioPathOfAscensionLoyalty = 169,
+    ScenarioPathOfAscensionWisdom = 170,
+    ScenarioPathOfAscensionHumility = 171,
+
+    WorldBoss = 172,
+
+    ClassicPartyNormal = 173,
+    ClassicPartyHeroic = 174,
+    ClassicRaid10 = 175,
+    ClassicRaid25 = 176,
+
+    ChallengeLevel1 = 192, // ???
+
+    ClassicRaid10Heroic = 193,
+    ClassicRaid25Heroic = 194,
 }
 
 fn string_or_struct<'de, T, D>(deserializer: D) -> Result<String, D::Error>

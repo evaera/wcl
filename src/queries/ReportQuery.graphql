@@ -18,6 +18,14 @@ query ReportQuery($reportId: String!) {
       region {
         compactName
       }
+      zone {
+        difficulties {
+          id
+          name
+        }
+        name
+        id
+      }
       title
       visibility
       fights {

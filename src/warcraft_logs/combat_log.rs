@@ -460,7 +460,7 @@ pub enum EventType {
 
         target_instance: Option<i64>,
 
-        target_is_friendly: bool,
+        target_is_friendly: Option<bool>,
 
         #[serde(rename = "abilityGameID")]
         ability_game_id: i64,

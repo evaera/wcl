@@ -23,6 +23,23 @@ pub fn get_default_spells(player_class: PlayerClass) -> Vec<i64> {
     }
 }
 
+pub fn get_default_dynamic_timers(boss: &str, difficulty: &str) -> Vec<DynamicTimer> {
+    match (difficulty, boss) {
+        ("Mythic", "Igira the Cruel") => vec!["SCS:422776:1", "SCS:422776:2", "SCS:422776:3"],
+        ("Mythic", "Council of Dreams") => vec!["SAR:421029:1", "SAR:421029:2", "SAR:421029:3"],
+        ("Mythic", "Larodar, Keeper of the Flame") => vec!["SCS:421316:1"],
+        ("Mythic", "Nymue, Weaver of the Cycle") => {
+            vec!["SAR:413443:1", "SAR:413443:2", "SAR:413443:3"]
+        }
+        ("Mythic", "Tindral Sageswift, Seer of the Flame") => vec!["SAA:421603:1", "SAA:421603:2"],
+        ("Mythic", "Fyrakk the Blazing") => vec!["SCS:412761:1", "SAR:421922:1", "SCS:412761:4"],
+        _ => vec![],
+    }
+    .into_iter()
+    .map(|s| s.to_owned().try_into().unwrap())
+    .collect::<Vec<DynamicTimer>>()
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum DynamicTimerType {
     SpellCastSuccess,

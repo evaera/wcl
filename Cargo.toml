@@ -19,3 +19,4 @@ tokio = { version = "1.37.0", features = ["macros", "rt-multi-thread"] }
 serde_path_to_error = "0.1"
 serde_with = "3.7.0"
 chrono = "0.4.37"
+serde_repr = "0.1.18"

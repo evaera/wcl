@@ -1,4 +1,4 @@
-use assignments::{get_default_spells, DynamicTimer};
+use assignments::{get_default_dynamic_timers, get_default_spells, DynamicTimer};
 use chrono::Offset;
 use clap::{Parser, Subcommand};
 use warcraft_logs::report::PlayerClass;
@@ -111,6 +111,7 @@ async fn main() {
 
                     println!("Report: {}", report.data.title);
                     println!("Fight: {}", fight.data.name);
+                    println!("Difficulty: {}", fight.difficulty);
                     println!(
                         "Date: {}, Duration: {}",
                         format_unix_time(fight.start_time() as i64, "%Y-%m-%d %I:%M%P"),
@@ -188,7 +189,7 @@ async fn main() {
             spells,
             dynamic_timers,
         } => {
-            let dynamic_timers: Vec<DynamicTimer> = dynamic_timers
+            let mut dynamic_timers: Vec<DynamicTimer> = dynamic_timers
                 .map(|timers| {
                     timers
                         .into_iter()
@@ -196,8 +197,6 @@ async fn main() {
                         .collect()
                 })
                 .unwrap_or_default();
-
-            dbg!(&dynamic_timers);
 
             let wcl = warcraft_logs::WarcraftLogs::new();
             let report = wcl.get_report(&report_id).await.unwrap();
@@ -210,6 +209,10 @@ async fn main() {
                 .iter()
                 .find(|f| f.data.id == fight_id)
                 .unwrap();
+
+            if dynamic_timers.is_empty() {
+                dynamic_timers = get_default_dynamic_timers(&fight.data.name, &fight.difficulty);
+            }
 
             let combat_log = fight.download_combat_log().await.unwrap();
 
