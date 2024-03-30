@@ -119,7 +119,19 @@ async fn main() {
                         format_unix_time(report.data.end_time as i64, "%Y-%m-%d %I:%M%P"),
                         chrono::Local::now().offset().fix()
                     );
-                    println!("Fights in this report:");
+                    println!();
+                    print!("Fights in this report:");
+                    if !all {
+                        print!(
+                            " ({} non-boss fights excluded)",
+                            report
+                                .fights
+                                .iter()
+                                .filter(|f| f.data.encounter_id.is_none())
+                                .count()
+                        );
+                    }
+                    println!();
 
                     for fight in report.fights {
                         if !all && fight.data.encounter_id.is_none() {
