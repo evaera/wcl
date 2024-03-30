@@ -6,6 +6,7 @@ use std::env;
 use std::fmt;
 use std::marker::PhantomData;
 use std::sync::Arc;
+use std::time::Duration;
 
 use serde::de::{self, MapAccess, Visitor};
 
@@ -24,11 +25,24 @@ impl Report {
         let mut fights = Vec::new();
 
         for fight in data.fights.drain(..) {
+            let mut friendly_players = Vec::new();
+            let mut enemy_players = Vec::new();
+
+            for idx in fight.friendly_players.iter() {
+                friendly_players.push(data.master_data.actors[*idx as usize].clone())
+            }
+
+            for idx in fight.enemy_players.iter() {
+                enemy_players.push(data.master_data.actors[*idx as usize].clone())
+            }
+
             fights.push(Fight {
                 api_context: api_context.clone(),
                 data: fight,
                 report_id: data.report_id.clone(),
                 report_start_time: data.start_time,
+                friendly_players,
+                enemy_players,
             });
         }
 
@@ -45,6 +59,8 @@ pub struct Fight {
     pub report_id: String,
     pub(super) api_context: Arc<ApiContext>,
     report_start_time: f64,
+    pub friendly_players: Vec<Actor>,
+    pub enemy_players: Vec<Actor>,
 }
 
 impl Fight {
@@ -57,9 +73,13 @@ impl Fight {
     pub fn start_time(&self) -> f64 {
         self.report_start_time + self.data.start_time
     }
+
+    pub fn duration(&self) -> Duration {
+        Duration::from_millis((self.data.end_time - self.data.start_time) as u64)
+    }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct Server {
     name: String,
@@ -71,7 +91,7 @@ impl From<Server> for String {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Guild {
     pub id: u64,
@@ -80,14 +100,14 @@ pub struct Guild {
     pub server: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: u64,
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum ReportVisibility {
     Public,
@@ -95,7 +115,7 @@ pub enum ReportVisibility {
     Unlisted,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct Region {
     compact_name: String,
@@ -107,7 +127,7 @@ impl From<Region> for String {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReportData {
     #[serde(rename = "code")]
@@ -125,20 +145,20 @@ pub struct ReportData {
     pub master_data: MasterData,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MasterData {
     pub actors: Vec<Actor>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Actor {
-    name: String,
-    server: Option<String>,
+    pub name: String,
+    pub server: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FightData {
     pub id: u32,
@@ -147,8 +167,8 @@ pub struct FightData {
     pub difficulty: Option<i64>,
     #[serde(rename = "encounterID", deserialize_with = "none_when_default")]
     pub encounter_id: Option<i64>,
-    pub end_time: f64,
-    pub start_time: f64,
+    end_time: f64,
+    start_time: f64,
     pub in_progress: bool,
 
     #[serde(deserialize_with = "true_or_null")]
@@ -158,8 +178,8 @@ pub struct FightData {
     pub name: String,
     pub wipe_called_time: Option<f64>,
 
-    pub friendly_players: Vec<u64>,
-    pub enemy_players: Vec<u64>,
+    friendly_players: Vec<u64>,
+    enemy_players: Vec<u64>,
 }
 
 fn string_or_struct<'de, T, D>(deserializer: D) -> Result<String, D::Error>
