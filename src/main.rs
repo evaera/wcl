@@ -1,6 +1,8 @@
+use assignments::DynamicTimer;
 use chrono::Offset;
 use clap::{Parser, Subcommand};
 
+pub mod assignments;
 pub mod warcraft_logs;
 
 #[derive(Parser)]
@@ -28,6 +30,11 @@ enum Commands {
         all: bool,
         #[arg(long, short, help = "Only show kills")]
         kills: bool,
+    },
+    Assignments {
+        report_id: String,
+        fight_id: u32,
+        actor_name: String,
     },
 }
 
@@ -64,7 +71,13 @@ async fn main() {
             fight_id,
         } => {
             let wcl = warcraft_logs::WarcraftLogs::new();
-            dbg!(wcl.get_combat_log(&report_id, fight_id).await.unwrap());
+            let report = wcl.get_report(&report_id).await.unwrap();
+            let fight = report
+                .fights
+                .iter()
+                .find(|f| f.data.id == fight_id)
+                .unwrap();
+            dbg!(fight.download_combat_log().await.unwrap());
         }
         Commands::Report {
             report_id,
@@ -154,6 +167,46 @@ async fn main() {
                         );
                     }
                 }
+            }
+        }
+        Commands::Assignments {
+            report_id,
+            fight_id,
+            actor_name,
+        } => {
+            let wcl = warcraft_logs::WarcraftLogs::new();
+            let report = wcl.get_report(&report_id).await.unwrap();
+
+            let fight = report
+                .fights
+                .iter()
+                .find(|f| f.data.id == fight_id)
+                .unwrap();
+
+            let combat_log = fight.download_combat_log().await.unwrap();
+
+            let assignments = assignments::extract_assignments(
+                &combat_log,
+                &actor_name,
+                vec![
+                    // SAA:421603:1
+                    DynamicTimer {
+                        ty: assignments::DynamicTimerType::SpellAuraApplied,
+                        spell_id: 421603,
+                        counter: 1,
+                    },
+                    // SAA:421603:2
+                    DynamicTimer {
+                        ty: assignments::DynamicTimerType::SpellAuraApplied,
+                        spell_id: 421603,
+                        counter: 2,
+                    },
+                ],
+            )
+            .unwrap();
+
+            for assignment in assignments {
+                println!("{}", assignment.to_string());
             }
         }
     }

@@ -1,10 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+use super::report::Actor;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CombatLog {
     pub report_id: String,
     pub fight_id: i64,
     pub events: Vec<CombatLogEvent>,
+    pub actors: Vec<Actor>,
+    pub first_event_timestamp: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,7 +25,13 @@ pub struct CombatLogEvent {
 
     #[serde(flatten)]
     pub ty: EventType,
+
+    pub source_marker: Option<i64>,
+    pub target_marker: Option<i64>,
 }
+
+// Docs on event types can be found here:
+// https://www.warcraftlogs.com/help/pins
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Serialize, Deserialize, Debug)]
@@ -63,6 +73,19 @@ pub enum EventType {
 
         #[serde(rename = "abilityGameID")]
         ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    ApplyDebuffStack {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        stack: i64,
     },
     #[serde(rename_all = "camelCase")]
     AuraBroken {
@@ -254,6 +277,17 @@ pub enum EventType {
         ability_game_id: i64,
     },
     #[serde(rename_all = "camelCase")]
+    RemoveDebuff {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
     ResourceChange {
         #[serde(rename = "sourceID")]
         source_id: i64,
@@ -286,6 +320,225 @@ pub enum EventType {
 
         #[serde(rename = "abilityGameID")]
         ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    Absorbed {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        #[serde(rename = "attackerID")]
+        attacker_id: i64,
+
+        amount: i64,
+
+        #[serde(rename = "extraAbilityGameID")]
+        extra_ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    RemoveBuffStack {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        stack: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    ExtraAttacks {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        extra_attacks: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    InstaKill {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        source_instance: Option<i64>,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        target_instance: Option<i64>,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    Death {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        target_instance: Option<i64>,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    RemoveDebuffStack {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        stack: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    EmpowerStart {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    EmpowerEnd {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        empowerment_level: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    Drain {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        resource_change: i64,
+
+        resource_change_type: i64,
+
+        other_resource_change: i64,
+
+        max_resource_amount: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    Interrupt {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        target_instance: Option<i64>,
+
+        target_is_friendly: bool,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        #[serde(rename = "extraAbilityGameID")]
+        extra_ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    Destroy {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        target_instance: Option<i64>,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    Dispel {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        #[serde(rename = "extraAbilityGameID")]
+        extra_ability_game_id: i64,
+
+        is_buff: bool,
+    },
+    #[serde(rename_all = "camelCase")]
+    Resurrect {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    HealAbsorbed {
+        #[serde(rename = "sourceID")]
+        source_id: i64,
+
+        #[serde(rename = "targetID")]
+        target_id: i64,
+
+        #[serde(rename = "abilityGameID")]
+        ability_game_id: i64,
+
+        #[serde(rename = "healerID")]
+        healer_id: i64,
+
+        amount: i64,
+
+        #[serde(rename = "extraAbilityGameID")]
+        extra_ability_game_id: i64,
+    },
+    #[serde(rename_all = "camelCase")]
+    EncounterEnd {
+        #[serde(rename = "encounterID")]
+        encounter_id: i64,
+
+        name: String,
+
+        difficulty: i64,
+
+        size: i64,
+
+        kill: bool,
     },
     #[serde(other)]
     Unknown,

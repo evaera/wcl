@@ -3,7 +3,7 @@ use graphql_client::{GraphQLQuery, QueryBody};
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 
-use self::combat_log::CombatLog;
+use self::combat_log::{CombatLog, CombatLogEvent};
 
 pub mod combat_log;
 pub mod report;
@@ -58,7 +58,7 @@ impl ApiContext {
         &self,
         report_id: &str,
         fight_id: u32,
-    ) -> anyhow::Result<CombatLog> {
+    ) -> anyhow::Result<Vec<CombatLogEvent>> {
         let mut start_time = 0.0;
 
         let mut events = Vec::new();
@@ -100,11 +100,7 @@ impl ApiContext {
             }
         }
 
-        Ok(CombatLog {
-            report_id: report_id.to_owned(),
-            fight_id: fight_id as i64,
-            events,
-        })
+        Ok(events)
     }
 }
 
@@ -142,13 +138,5 @@ impl WarcraftLogs {
             .context("ReportData deserialization failed")?;
 
         Ok(report::Report::new(report, self.api_context.clone()))
-    }
-
-    pub async fn get_combat_log(
-        &self,
-        report_id: &str,
-        fight_id: u32,
-    ) -> anyhow::Result<CombatLog> {
-        self.api_context.get_combat_log(report_id, fight_id).await
     }
 }

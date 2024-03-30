@@ -42,6 +42,7 @@ impl Report {
                 report_start_time: data.start_time,
                 friendly_players,
                 enemy_players,
+                actors: data.master_data.actors.clone(),
             });
         }
 
@@ -60,13 +61,25 @@ pub struct Fight {
     report_start_time: f64,
     pub friendly_players: Vec<Actor>,
     pub enemy_players: Vec<Actor>,
+    actors: Vec<Actor>,
 }
 
 impl Fight {
     pub async fn download_combat_log(&self) -> anyhow::Result<CombatLog> {
-        self.api_context
+        let events = self
+            .api_context
             .get_combat_log(&self.report_id, self.data.id)
-            .await
+            .await?;
+
+        let first_event_timestamp = events.first().map(|e| e.timestamp).unwrap_or(0);
+
+        Ok(CombatLog {
+            report_id: self.report_id.clone(),
+            fight_id: self.data.id as i64,
+            events,
+            actors: self.actors.clone(),
+            first_event_timestamp,
+        })
     }
 
     pub fn start_time(&self) -> f64 {
@@ -179,6 +192,22 @@ pub struct FightData {
 
     friendly_players: Vec<u64>,
     enemy_players: Vec<u64>,
+}
+
+pub enum PlayerClass {
+    Warrior,
+    Paladin,
+    Hunter,
+    Rogue,
+    Priest,
+    DeathKnight,
+    Shaman,
+    Mage,
+    Warlock,
+    Monk,
+    Druid,
+    DemonHunter,
+    Evoker,
 }
 
 fn string_or_struct<'de, T, D>(deserializer: D) -> Result<String, D::Error>
