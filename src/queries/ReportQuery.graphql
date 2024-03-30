@@ -1,0 +1,47 @@
+query ReportQuery($reportId: String!) {
+  reportData {
+    report(code: $reportId) {
+      code
+      endTime
+      startTime
+      guild {
+        id
+        name
+        server {
+          name
+        }
+      }
+      owner {
+        id
+        name
+      }
+      region {
+        compactName
+      }
+      title
+      visibility
+      fights {
+        id
+        averageItemLevel
+        bossPercentage
+        difficulty
+        encounterID
+        endTime
+        startTime
+        inProgress
+        kill
+        lastPhase
+        name
+        wipeCalledTime
+        friendlyPlayers
+        enemyPlayers
+      }
+      masterData {
+        actors {
+          name
+          server
+        }
+      }
+    }
+  }
+}
