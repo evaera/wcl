@@ -1,6 +1,7 @@
-use assignments::DynamicTimer;
+use assignments::{get_default_spells, DynamicTimer};
 use chrono::Offset;
 use clap::{Parser, Subcommand};
+use warcraft_logs::report::PlayerClass;
 
 pub mod assignments;
 pub mod warcraft_logs;
@@ -35,6 +36,17 @@ enum Commands {
         report_id: String,
         fight_id: u32,
         actor_name: String,
+
+        #[arg(
+            long,
+            short,
+            help = "Spell IDs to export assignments for",
+            value_delimiter = ','
+        )]
+        spells: Option<Vec<i64>>,
+
+        #[arg(long, short, help = "MRT dynamic timers", value_delimiter = ',')]
+        dynamic_timers: Option<Vec<String>>,
     },
 }
 
@@ -173,9 +185,25 @@ async fn main() {
             report_id,
             fight_id,
             actor_name,
+            spells,
+            dynamic_timers,
         } => {
+            let dynamic_timers: Vec<DynamicTimer> = dynamic_timers
+                .map(|timers| {
+                    timers
+                        .into_iter()
+                        .map(|v| v.try_into().unwrap()) // better error here would be good...
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            dbg!(&dynamic_timers);
+
             let wcl = warcraft_logs::WarcraftLogs::new();
             let report = wcl.get_report(&report_id).await.unwrap();
+
+            // TODO: Get actual player class from report
+            let spells = spells.unwrap_or_else(|| get_default_spells(PlayerClass::Priest));
 
             let fight = report
                 .fights
@@ -185,25 +213,9 @@ async fn main() {
 
             let combat_log = fight.download_combat_log().await.unwrap();
 
-            let assignments = assignments::extract_assignments(
-                &combat_log,
-                &actor_name,
-                vec![
-                    // SAA:421603:1
-                    DynamicTimer {
-                        ty: assignments::DynamicTimerType::SpellAuraApplied,
-                        spell_id: 421603,
-                        counter: 1,
-                    },
-                    // SAA:421603:2
-                    DynamicTimer {
-                        ty: assignments::DynamicTimerType::SpellAuraApplied,
-                        spell_id: 421603,
-                        counter: 2,
-                    },
-                ],
-            )
-            .unwrap();
+            let assignments =
+                assignments::extract_assignments(&combat_log, &actor_name, spells, dynamic_timers)
+                    .unwrap();
 
             for assignment in assignments {
                 println!("{}", assignment.to_string());

@@ -1,13 +1,24 @@
 use std::collections::HashMap;
 
+use anyhow::{bail, Context};
+
 use crate::warcraft_logs::{
     combat_log::{CombatLog, EventType},
     report::PlayerClass,
 };
 
-fn get_default_spells(player_class: PlayerClass) -> Vec<i64> {
+pub fn get_default_spells(player_class: PlayerClass) -> Vec<i64> {
     match player_class {
-        PlayerClass::Priest => vec![194509, 123040, 47536, 246287, 271466],
+        PlayerClass::Priest => vec![
+            194509, // Power Word: Radiance
+            123040, // Mindbender
+            47536,  // Rapture
+            246287, // Evangelism
+            271466, // Luminous Barrier
+            132603, // Shadowfiend
+            62618,  // Power Word: Barrier
+            421453, // Ultimate Penitence
+        ],
         _ => vec![],
     }
 }
@@ -85,6 +96,45 @@ pub struct DynamicTimer {
     pub counter: i64,
 }
 
+impl TryFrom<String> for DynamicTimer {
+    fn try_from(value: String) -> anyhow::Result<Self> {
+        let parts: Vec<&str> = value.split(':').collect();
+        if parts.len() != 3 {
+            bail!("Invalid dynamic timer format");
+        }
+
+        let ty = match parts[0] {
+            "SCS" => DynamicTimerType::SpellCastStart,
+            "SCC" => DynamicTimerType::SpellCastSuccess,
+            "SAR" => DynamicTimerType::SpellAuraRemoved,
+            "SAA" => DynamicTimerType::SpellAuraApplied,
+            _ => bail!("Invalid dynamic timer type"),
+        };
+
+        let spell_id = parts[1].parse().context("Invalid Spell ID")?;
+        let counter = parts[2].parse().context("Invalid counter")?;
+
+        Ok(DynamicTimer {
+            ty,
+            spell_id,
+            counter,
+        })
+    }
+
+    type Error = anyhow::Error;
+}
+
+impl ToString for DynamicTimer {
+    fn to_string(&self) -> String {
+        format!(
+            ",{}:{}:{}",
+            self.ty.as_abbreviation(),
+            self.spell_id,
+            self.counter
+        )
+    }
+}
+
 pub struct Assignment {
     pub spell_id: i64,
     pub dynamic_timer: Option<DynamicTimer>,
@@ -99,14 +149,7 @@ impl ToString for Assignment {
         let dynamic_timer = self
             .dynamic_timer
             .as_ref()
-            .map(|dt| {
-                format!(
-                    ",{}:{}:{}",
-                    dt.ty.as_abbreviation(),
-                    dt.spell_id,
-                    dt.counter
-                )
-            })
+            .map(|dt| dt.to_string())
             .unwrap_or("".to_owned());
 
         format!(
@@ -119,6 +162,7 @@ impl ToString for Assignment {
 pub fn extract_assignments(
     combat_log: &CombatLog,
     player_name: &str,
+    assigned_spells: Vec<i64>,
     mut dynamic_timers: Vec<DynamicTimer>,
 ) -> anyhow::Result<Vec<Assignment>> {
     let actor_index = combat_log
@@ -128,8 +172,6 @@ pub fn extract_assignments(
         .find(|(_, actor)| actor.name == player_name && actor.server.is_some())
         .map(|(idx, _)| idx)
         .ok_or(anyhow::anyhow!("Player not found"))? as i64;
-
-    let assigned_spells = get_default_spells(PlayerClass::Priest);
 
     let mut assignments = Vec::new();
 
