@@ -25,6 +25,7 @@ pub fn get_default_spells(player_class: PlayerClass) -> Vec<i64> {
 
 pub fn get_default_dynamic_timers(boss: &str, difficulty: &str) -> Vec<DynamicTimer> {
     match (difficulty, boss) {
+        ("Mythic", "Gnarlroot") => vec!["SAR:421013:1", "SAR:421013:2", "SAR:421013:3"],
         ("Mythic", "Igira the Cruel") => vec!["SCS:422776:1", "SCS:422776:2", "SCS:422776:3"],
         ("Mythic", "Council of Dreams") => vec!["SAR:421029:1", "SAR:421029:2", "SAR:421029:3"],
         ("Mythic", "Larodar, Keeper of the Flame") => vec!["SCS:421316:1"],
@@ -67,13 +68,7 @@ impl DynamicTimerType {
                 EventType::ApplyBuff {
                     ability_game_id, ..
                 } => ability_game_id == &id,
-                EventType::ApplyBuffStack {
-                    ability_game_id, ..
-                } => ability_game_id == &id,
                 EventType::ApplyDebuff {
-                    ability_game_id, ..
-                } => ability_game_id == &id,
-                EventType::ApplyDebuffStack {
                     ability_game_id, ..
                 } => ability_game_id == &id,
                 _ => false,
@@ -82,13 +77,7 @@ impl DynamicTimerType {
                 EventType::RemoveBuff {
                     ability_game_id, ..
                 } => ability_game_id == &id,
-                EventType::RemoveBuffStack {
-                    ability_game_id, ..
-                } => ability_game_id == &id,
                 EventType::RemoveDebuff {
-                    ability_game_id, ..
-                } => ability_game_id == &id,
-                EventType::RemoveDebuffStack {
                     ability_game_id, ..
                 } => ability_game_id == &id,
                 _ => false,
