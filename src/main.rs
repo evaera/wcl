@@ -68,10 +68,10 @@ fn format_duration(d: std::time::Duration) -> String {
 
 #[tokio::main]
 async fn main() {
-    #[cfg(debug_assertions)]
-    {
-        dotenvy::dotenv().ok();
-    }
+    // #[cfg(debug_assertions)]
+    // {
+    dotenvy::dotenv().ok();
+    // }
 
     env_logger::init();
 
@@ -213,6 +213,12 @@ async fn main() {
             if dynamic_timers.is_empty() {
                 dynamic_timers = get_default_dynamic_timers(&fight.data.name, &fight.difficulty);
             }
+
+            println!("# {}", fight.data.name);
+            println!(
+                "# https://www.warcraftlogs.com/reports/{}#fight={}",
+                &report_id, &fight_id
+            );
 
             let combat_log = fight.download_combat_log().await.unwrap();
 
