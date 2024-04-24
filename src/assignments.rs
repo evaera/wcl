@@ -16,6 +16,7 @@ pub fn get_default_spells(player_class: PlayerClass) -> Vec<i64> {
             246287, // Evangelism
             271466, // Luminous Barrier
             132603, // Shadowfiend
+            34433,  // Shadowfiend
             62618,  // Power Word: Barrier
             421453, // Ultimate Penitence
         ],
@@ -25,6 +26,7 @@ pub fn get_default_spells(player_class: PlayerClass) -> Vec<i64> {
 
 pub fn get_default_dynamic_timers(boss: &str, difficulty: &str) -> Vec<DynamicTimer> {
     match (difficulty, boss) {
+        // Amidrassil
         ("Mythic", "Gnarlroot") => vec!["SAR:421013:1", "SAR:421013:2", "SAR:421013:3"],
         ("Mythic", "Igira the Cruel") => vec!["SCS:422776:1", "SCS:422776:2", "SCS:422776:3"],
         ("Mythic", "Council of Dreams") => vec!["SAR:421029:1", "SAR:421029:2", "SAR:421029:3"],
@@ -34,6 +36,14 @@ pub fn get_default_dynamic_timers(boss: &str, difficulty: &str) -> Vec<DynamicTi
         }
         ("Mythic", "Tindral Sageswift, Seer of the Flame") => vec!["SAA:421603:1", "SAA:421603:2"],
         ("Mythic", "Fyrakk the Blazing") => vec!["SCS:412761:1", "SAR:421922:1", "SCS:412761:4"],
+
+        // Vault
+        ("Normal" | "Heroic" | "Mythic", "Raszageth the Storm-Eater") => vec![
+            "SAR:381249:1",
+            "SAA:381249:2",
+            "SAR:381249:2",
+            "SAA:381249:3",
+        ],
         _ => vec![],
     }
     .into_iter()
