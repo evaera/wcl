@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand};
 use warcraft_logs::report::PlayerClass;
 
 pub mod assignments;
+pub mod healing;
 pub mod warcraft_logs;
 
 #[derive(Parser)]
@@ -47,6 +48,10 @@ enum Commands {
 
         #[arg(long, short, help = "MRT dynamic timers", value_delimiter = ',')]
         dynamic_timers: Option<Vec<String>>,
+    },
+    Correctness {
+        report_id: String,
+        fight_id: u32,
     },
 }
 
@@ -229,6 +234,22 @@ async fn main() {
             for assignment in assignments {
                 println!("{}", assignment.to_string());
             }
+        }
+        Commands::Correctness {
+            report_id,
+            fight_id,
+        } => {
+            let wcl = warcraft_logs::WarcraftLogs::new();
+            let report = wcl.get_report(&report_id).await.unwrap();
+            let fight = report
+                .fights
+                .iter()
+                .find(|f| f.data.id == fight_id)
+                .unwrap();
+
+            let combat_log = fight.download_combat_log().await.unwrap();
+
+            healing::calculate_heal_correctness(&combat_log).unwrap();
         }
     }
 }

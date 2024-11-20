@@ -595,15 +595,8 @@ pub struct TalentTree {
     pub id: i64,
     pub rank: i64,
 
-    #[serde(rename = "spellID")]
-    pub spell_id: i64,
-
-    pub icon: String,
-
     #[serde(rename = "nodeID")]
     pub node_id: i64,
-
-    pub spell_type: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

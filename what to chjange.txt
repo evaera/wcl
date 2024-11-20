@@ -1,0 +1,5 @@
+- change DynamicTimer to FromStr and clap will pares automatically
+- use Display instead of ToString everywhere
+- actor iter() .position instead of map and ok_or_else
+  - cast to i64 on use instead of inline
+- make DynamicTimer.counter usize
