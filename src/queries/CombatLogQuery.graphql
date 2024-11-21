@@ -10,6 +10,7 @@ query CombatLogQuery(
         startTime: $startTime
         endTime: 9999999999
         limit: 10000
+        includeResources: true
       ) {
         data
         nextPageTimestamp

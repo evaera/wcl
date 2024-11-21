@@ -19,6 +19,7 @@ pub(crate) struct ReportEventPaginator {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct CombatLogEvent {
     pub timestamp: i64,
     pub fight: i64,
@@ -28,6 +29,28 @@ pub struct CombatLogEvent {
 
     pub source_marker: Option<i64>,
     pub target_marker: Option<i64>,
+
+    #[serde(flatten)]
+    pub resources: Option<EventResources>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct EventResources {
+    pub hit_points: i64,
+    pub max_hit_points: i64,
+    pub attack_power: i64,
+    pub spell_power: i64,
+    pub armor: i64,
+    pub absorb: i64,
+    pub x: i64,
+    pub y: i64,
+    pub facing: i64,
+    #[serde(rename = "mapID")]
+    pub map_id: i64,
+    pub versatility: i64,
+    pub avoidance: i64,
+    pub item_level: i64,
 }
 
 // Docs on event types can be found here:
@@ -542,6 +565,45 @@ pub enum EventType {
     },
     #[serde(other)]
     Unknown,
+}
+impl EventType {
+    pub fn source_id(&self) -> Option<i64> {
+        match &self {
+            EventType::ApplyBuff { source_id, .. }
+            | EventType::ApplyBuffStack { source_id, .. }
+            | EventType::ApplyDebuff { source_id, .. }
+            | EventType::ApplyDebuffStack { source_id, .. }
+            | EventType::AuraBroken { source_id, .. }
+            | EventType::BeginCast { source_id, .. }
+            | EventType::Cast { source_id, .. }
+            | EventType::CombatantInfo { source_id, .. }
+            | EventType::Damage { source_id, .. }
+            | EventType::Heal { source_id, .. }
+            | EventType::RefreshBuff { source_id, .. }
+            | EventType::RefreshDebuff { source_id, .. }
+            | EventType::RemoveBuff { source_id, .. }
+            | EventType::RemoveDebuff { source_id, .. }
+            | EventType::ResourceChange { source_id, .. }
+            | EventType::Summon { source_id, .. }
+            | EventType::Absorbed { source_id, .. }
+            | EventType::RemoveBuffStack { source_id, .. }
+            | EventType::ExtraAttacks { source_id, .. }
+            | EventType::InstaKill { source_id, .. }
+            | EventType::Death { source_id, .. }
+            | EventType::RemoveDebuffStack { source_id, .. }
+            | EventType::EmpowerStart { source_id, .. }
+            | EventType::EmpowerEnd { source_id, .. }
+            | EventType::Drain { source_id, .. }
+            | EventType::Interrupt { source_id, .. }
+            | EventType::Destroy { source_id, .. }
+            | EventType::Dispel { source_id, .. }
+            | EventType::Resurrect { source_id, .. }
+            | EventType::HealAbsorbed { source_id, .. } => Some(*source_id),
+            EventType::EncounterStart { .. }
+            | EventType::EncounterEnd { .. }
+            | EventType::Unknown => None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

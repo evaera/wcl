@@ -57,30 +57,21 @@ pub fn calculate_heal_correctness(combat_log: &CombatLog) -> anyhow::Result<()> 
 
     valid_heal_spells.insert("Atonement".to_owned());
 
-    // Player IDs are the positions in the actors vector
-    let player_ids: Vec<i64> = combat_log
-        .actors
-        .iter()
-        .enumerate()
-        .filter(|(_, actor)| actor.server.is_some())
-        .map(|(id, _)| id as i64)
-        .collect();
-
-    let mut paladin = None;
+    let mut player_ids: HashSet<i64> = HashSet::new();
 
     // Populate healer_ids using CombatantInfo events
     for event in &combat_log.events {
-        if let EventType::CombatantInfo {
-            source_id, spec_id, ..
-        } = &event.ty
-        {
-            if HEALER_SPECS.contains(spec_id) {
-                healer_ids.insert(*source_id);
-
-                if *spec_id == 65 {
-                    paladin = Some(*source_id);
+        match &event.ty {
+            EventType::EncounterStart { .. } => continue,
+            EventType::CombatantInfo {
+                source_id, spec_id, ..
+            } => {
+                if HEALER_SPECS.contains(spec_id) {
+                    healer_ids.insert(*source_id);
                 }
+                player_ids.insert(*source_id);
             }
+            _ => break,
         }
     }
 
@@ -107,49 +98,43 @@ pub fn calculate_heal_correctness(combat_log: &CombatLog) -> anyhow::Result<()> 
 
     let mut alive_players: HashSet<i64> = player_ids.iter().cloned().collect();
 
+    dbg!(&alive_players);
+
+    for player in &player_ids {
+        println!(
+            "Player: {}-{}",
+            combat_log.actors[*player as usize].name,
+            combat_log.actors[*player as usize].server.as_ref().unwrap()
+        );
+    }
+
     for event in &combat_log.events {
         match &event.ty {
-            EventType::Damage {
-                target_id, amount, ..
-            } => {
-                if alive_players.contains(target_id) {
-                    *health_map.entry(*target_id).or_insert(0) -= amount;
+            EventType::Damage { target_id, .. } => {
+                if let Some(resources) = &event.resources {
+                    health_map.insert(*target_id, resources.hit_points);
+                }
+            }
+            EventType::ResourceChange { target_id, .. } => {
+                if let Some(resources) = &event.resources {
+                    health_map.insert(*target_id, resources.hit_points);
                 }
             }
             EventType::Heal {
                 source_id,
                 target_id,
-                amount,
                 ability_game_id,
                 ..
             } => {
-                // Update health map for all heals
-                if alive_players.contains(target_id) {
-                    *health_map.entry(*target_id).or_insert(0) += amount;
-                }
-
-                if let Some(paladin) = paladin {
-                    if *source_id == paladin {
-                        println!(
-                            "{} healed {} for {} [{}]",
-                            source_id,
-                            target_id,
-                            amount,
-                            spell_names
-                                .get(ability_game_id)
-                                .unwrap_or(&"Unknown".to_string())
-                        );
-                    }
-                }
-
                 // Only process correctness for valid heal spells
-                if !healer_ids.contains(source_id)
-                    || !valid_heal_spells.contains(spell_names.get(ability_game_id).unwrap())
+                if healer_ids.contains(source_id)
+                    && valid_heal_spells.contains(
+                        spell_names
+                            .get(ability_game_id)
+                            .unwrap_or(&"Unknown".to_string()),
+                    )
+                    && alive_players.contains(target_id)
                 {
-                    continue;
-                }
-
-                if alive_players.contains(target_id) {
                     let mut health_rank: Vec<_> = alive_players
                         .iter()
                         .map(|&id| (id, *health_map.get(&id).unwrap_or(&0)))
@@ -157,16 +142,28 @@ pub fn calculate_heal_correctness(combat_log: &CombatLog) -> anyhow::Result<()> 
 
                     health_rank.sort_by_key(|&(_, health)| health);
 
-                    if let Some(position) = health_rank.iter().position(|&(id, _)| id == *target_id)
-                    {
-                        let correctness =
-                            100.0 - (position as f64 / (health_rank.len() - 1) as f64) * 100.0;
+                    if health_rank.len() > 1 {
+                        if let Some(position) =
+                            health_rank.iter().position(|&(id, _)| id == *target_id)
+                        {
+                            let correctness =
+                                100.0 - (position as f64 / (health_rank.len() - 1) as f64) * 100.0;
 
-                        let (total_correctness, heal_count) =
-                            correctness_map.entry(*source_id).or_insert((0.0, 0));
-                        *total_correctness += correctness;
-                        *heal_count += 1;
+                            let (total_correctness, heal_count) =
+                                correctness_map.entry(*source_id).or_insert((0.0, 0));
+                            *total_correctness += correctness;
+                            *heal_count += 1;
+                        }
                     }
+                }
+
+                if let Some(resources) = &event.resources {
+                    health_map.insert(*target_id, resources.hit_points);
+                }
+            }
+            EventType::Cast { source_id, .. } => {
+                if let Some(resources) = &event.resources {
+                    health_map.insert(*source_id, resources.hit_points);
                 }
             }
             EventType::Death { target_id, .. } => {
