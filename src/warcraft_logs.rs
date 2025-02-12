@@ -1,9 +1,9 @@
 use anyhow::{bail, Context};
 use graphql_client::{GraphQLQuery, QueryBody};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{env, sync::Arc};
 
-use self::combat_log::{CombatLog, CombatLogEvent};
+use self::combat_log::CombatLogEvent;
 
 pub mod combat_log;
 pub mod report;

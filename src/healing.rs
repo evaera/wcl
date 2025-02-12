@@ -48,7 +48,7 @@ const HEALER_SPECS: [i64; 7] = [
 ];
 
 pub fn calculate_heal_correctness(combat_log: &CombatLog) -> anyhow::Result<()> {
-    let spell_names = load_spell_map("allspells.txt").unwrap();
+    let spell_names = load_spell_map("generated/allspells.txt").unwrap();
 
     let mut health_map: HashMap<i64, i64> = HashMap::new();
     let mut correctness_map: HashMap<i64, (f64, i64)> = HashMap::new();
@@ -98,8 +98,6 @@ pub fn calculate_heal_correctness(combat_log: &CombatLog) -> anyhow::Result<()> 
 
     let mut alive_players: HashSet<i64> = player_ids.iter().cloned().collect();
 
-    dbg!(&alive_players);
-
     for player in &player_ids {
         println!(
             "Player: {}-{}",
@@ -124,6 +122,7 @@ pub fn calculate_heal_correctness(combat_log: &CombatLog) -> anyhow::Result<()> 
                 source_id,
                 target_id,
                 ability_game_id,
+                overheal,
                 ..
             } => {
                 // Only process correctness for valid heal spells
@@ -134,6 +133,7 @@ pub fn calculate_heal_correctness(combat_log: &CombatLog) -> anyhow::Result<()> 
                             .unwrap_or(&"Unknown".to_string()),
                     )
                     && alive_players.contains(target_id)
+                    && overheal.is_none()
                 {
                     let mut health_rank: Vec<_> = alive_players
                         .iter()
@@ -146,8 +146,8 @@ pub fn calculate_heal_correctness(combat_log: &CombatLog) -> anyhow::Result<()> 
                         if let Some(position) =
                             health_rank.iter().position(|&(id, _)| id == *target_id)
                         {
-                            let correctness =
-                                100.0 - (position as f64 / (health_rank.len() - 1) as f64) * 100.0;
+                            let correctness = 100.0
+                                - ((position as f64 / (health_rank.len() - 1) as f64) * 100.0);
 
                             let (total_correctness, heal_count) =
                                 correctness_map.entry(*source_id).or_insert((0.0, 0));
